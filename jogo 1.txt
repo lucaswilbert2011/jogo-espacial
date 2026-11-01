@@ -1,168 +1,170 @@
-#pgzero
+import pgzrun
 import random
+from pgzero.builtins import Actor, keyboard, mouse, screen  # só para o VSCode reconhecer os nomes
 
 WIDTH = 600
 HEIGHT = 450
-
 TITLE = "Aventura espacial"
 FPS = 30
 
 # Objetos e variáveis
-ship = Actor("ship", (300, 400), size = (50,50))
+ship = Actor("ship", (300, 400), size=(50, 50))
 space = Actor("space")
-space2 = Actor("space2", size = (600,450))
+space2 = Actor("space2", size=(600, 450))
 enemies = []
 meteors = []
 bullets = []
-inimigos= ["enemy", "inimigo2", "inimigo3"]
-mode = 'menu'
-type1 = Actor("ship", (150, 270), size = (50,50))
-type2 = Actor("ship-2", (300, 270), size = (50,50))
-type3 = Actor("ship-3", (450, 270), size = (50,50))
-count = 0
-contagem = 0
-# Preenchendo a lista de inimigos
-for i in range(5):
+inimigos = ["enemy", "inimigo2", "inimigo3"]
+mode = "menu"
+type1 = Actor("ship", (150, 270), size=(50, 50))
+type2 = Actor("ship-2", (300, 270), size=(50, 50))
+type3 = Actor("ship-3", (450, 270), size=(50, 50))
+score = 0    # antigo "count": pontos
+escaped = 0  # antigo "contagem": inimigos que escaparam
+
+
+def new_enemy(y=-50):
+    """Cria um inimigo e adiciona à lista."""
     x = random.randint(0, 600)
-    y = random.randint(-450, -50)
     imagem = random.choice(inimigos)
-    enemy = Actor(imagem, (x, y), size = (45,45))
+    enemy = Actor(imagem, (x, y), size=(45, 45))
     enemy.speed = random.randint(4, 10)
     enemies.append(enemy)
-    
-# Preenchendo a lista de meteoros
-for i in range(5):
+
+
+def new_meteor():
     x = random.randint(0, 600)
     y = random.randint(-450, -50)
-    meteor = Actor("meteor", (x, y), size = (30,30))
+    meteor = Actor("meteor", (x, y), size=(30, 30))
     meteor.speed = random.randint(2, 10)
     meteors.append(meteor)
 
+
+def reset_game():
+    """Zera tudo para uma nova partida."""
+    global score, escaped
+    score = 0
+    escaped = 0
+    enemies.clear()
+    meteors.clear()
+    bullets.clear()
+    for _ in range(5):
+        new_enemy(random.randint(-450, -50))
+        new_meteor()
+
+
+reset_game()
+
+
 # Desenhando os gráficos
 def draw():
-   # Estado do jogo
-    if mode == 'menu':
+    if mode == "menu":
         space2.draw()
-        screen.draw.text('Escolha sua nave', center = (300, 185), color = "white", fontsize = 32)
+        screen.draw.text("Escolha sua nave", center=(300, 185), color="white", fontsize=32)
         type1.draw()
         type2.draw()
         type3.draw()
-    if mode == 'game':
+
+    elif mode == "game":
         space.draw()
-        
-        
-        # Resultado da pontuação
-        screen.draw.text(count, center = (20, 10), color = "white", fontsize = 24)
-        
-        # Desenhando os meteoros
-        for i in range(len(meteors)):
-            meteors[i].draw()
+        screen.draw.text(str(score), center=(20, 10), color="white", fontsize=24)
+        for meteor in meteors:
+            meteor.draw()
         ship.draw()
-        # Desenhando os inimigos
-        for i in range(len(enemies)):
-            enemies[i].draw()
-        # Desenhando as balas
-        for i in range(len(bullets)):
-            bullets[i].draw()
-        
-    # Janela de Game Over   
-    elif mode == 'end':
+        for enemy in enemies:
+            enemy.draw()
+        for bullet in bullets:
+            bullet.draw()
+
+    elif mode == "end":
         space.draw()
-        screen.draw.text("GAME OVER!", center = (300, 200), color = "white", fontsize = 36)
-        #Pontuação final
-screen.draw.text(count, center = (10, 10), color = "white", fontsize = 24)
-    
+        screen.draw.text("GAME OVER!", center=(300, 200), color="white", fontsize=36)
+        screen.draw.text("Pontuação: " + str(score), center=(300, 250), color="white", fontsize=24)
+        screen.draw.text("Aperte ESPAÇO para jogar de novo", center=(300, 300), color="white", fontsize=20)
+
+
 # Controles
 def on_mouse_move(pos):
     ship.pos = pos
 
-# Adicionando um novo inimigo à lista
-def new_enemy():
-    x = random.randint(0, 400)
-    y = -50
-    imagem = random.choice(inimigos)
-    enemy = Actor(imagem, (x, y), size = (45,45))
-    enemy.speed = random.randint(4, 10)
-    enemies.append(enemy)
 
-# Movimento do inimigo 
-def enemy_ship():
-    global contagem
-    for i in range(len(enemies)):
-        if enemies[i].y < 650:
-            enemies[i].y = enemies[i].y + enemies[i].speed
-        else:
-            enemies.pop(i)
-            contagem += 1
-            new_enemy()
-
-# Movimento dos planetas
-
-
-# Movimento dos meteoros
-def meteorites():
-    for i in range(len(meteors)):
-        if meteors[i].y < 450:
-            meteors[i].y = meteors[i].y + meteors[i].speed
-        else:
-            meteors[i].x = random.randint(0, 600)
-            meteors[i].y = -20
-            meteors[i].speed = random.randint(2, 10)
-
-# Colisões
-def collisions():
-    global mode
-    global count
-    for i in range(len(enemies)):
-        if ship.colliderect(enemies[i]):
-            mode = 'end'
-            count = 0
-        # Colisões com balas
-        for j in range(len(bullets)):
-           if bullets[j].colliderect(enemies[i]):
-                enemies.pop(i)
-                bullets.pop(j)
-                new_enemy()
-                count += 1
-                break 
-
-def update(dt):
-    global mode, contagem
-    if mode == 'game':
-        enemy_ship()
-        collisions()
-        meteorites()
-        if contagem >= 10:
-            mode = "end"
-        # Movimento das balas
-        for i in range(len(bullets)):
-            if bullets[i].y < 0:
-                bullets.pop(i)
-                break
-            else:
-                bullets[i].y = bullets[i].y - 10
-
-    elif mode == "end" and keyboard.space:
-        mode = "game"
-        contagem = 0
-    
-        
-
-# Função de manuseio de cliques
 def on_mouse_down(button, pos):
     global mode
-    global ship
-    if mode == 'menu' and type1.collidepoint(pos):
-        ship.image = "ship"
-        mode = 'game'
-    elif mode == 'menu' and type2.collidepoint(pos):
-        ship.image = "ship-2"
-        mode = 'game'
-    elif mode == 'menu' and type3.collidepoint(pos):
-        ship.image = "ship-3"
-        mode = 'game'
-    # Mecânicas de tiro
-    elif mode == 'game' and button == mouse.LEFT:
-        bullet = Actor("bullet", size = (20,20))
+    if mode == "menu":
+        if type1.collidepoint(pos):
+            ship.image = "ship"
+            mode = "game"
+        elif type2.collidepoint(pos):
+            ship.image = "ship-2"
+            mode = "game"
+        elif type3.collidepoint(pos):
+            ship.image = "ship-3"
+            mode = "game"
+    elif mode == "game" and button == mouse.LEFT:
+        bullet = Actor("bullet", size=(20, 20))
         bullet.pos = ship.pos
         bullets.append(bullet)
+
+
+# Movimento dos inimigos
+def move_enemies():
+    global escaped
+    for enemy in enemies[:]:  # cópia da lista: seguro para remover
+        if enemy.y < 650:
+            enemy.y += enemy.speed
+        else:
+            enemies.remove(enemy)
+            escaped += 1
+            new_enemy()
+
+
+# Movimento dos meteoros (reciclados ao sair da tela)
+def move_meteors():
+    for meteor in meteors:
+        if meteor.y < 450:
+            meteor.y += meteor.speed
+        else:
+            meteor.x = random.randint(0, 600)
+            meteor.y = -20
+            meteor.speed = random.randint(2, 10)
+
+
+# Movimento das balas
+def move_bullets():
+    for bullet in bullets[:]:
+        bullet.y -= 10
+        if bullet.y < 0:
+            bullets.remove(bullet)
+
+
+# Colisões
+def check_collisions():
+    global mode, score
+    for enemy in enemies[:]:
+        if ship.colliderect(enemy):
+            mode = "end"
+            return  # mantém a pontuação para mostrar no game over
+        for bullet in bullets[:]:
+            if bullet.colliderect(enemy):
+                enemies.remove(enemy)
+                bullets.remove(bullet)
+                new_enemy()
+                score += 1
+                break
+
+
+def update(dt):
+    global mode
+    if mode == "game":
+        move_enemies()
+        check_collisions()
+        move_meteors()
+        move_bullets()
+        if escaped >= 10:
+            mode = "end"
+    elif mode == "end" and keyboard.space:
+        reset_game()
+        mode = "game"
+
+
+pgzrun.go()
